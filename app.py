@@ -30,14 +30,12 @@ def get_doctor_data():
 def index():
     return render_template('index.html')
 
-# ... (kode sebelumnya)
-
 @app.route('/search', methods=['GET'])
 def search():
     query = request.args.get('query', '').lower()
     doctor_data = get_doctor_data()
 
-    combined_data = [' '.join([d['pendidikan'].lower(), d['nama'].lower(), d['nama_title'].lower(), d['spesialis'].lower()]) for d in doctor_data]
+    combined_data = [' '.join([d['pendidikan'].lower(), d['nama'].lower(), d['spesialis'].lower()]) for d in doctor_data]
 
     vectorizer = TfidfVectorizer(analyzer='char_wb', ngram_range=(3, 5))
     tfidf_matrix = vectorizer.fit_transform(combined_data)
