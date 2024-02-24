@@ -1,33 +1,54 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Search Results</title>
-    <!-- ... other head elements ... -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css">
-    <!-- ... other CSS files ... -->
+    <meta charset="UTF-8">
+    <title>Hasil Pencarian</title>
+    <style>
+        /* Tambahkan style yang Anda inginkan di sini */
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .search-results {
+            margin-top: 20px;
+        }
+        .result-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .feedback-form {
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-3">
-        <h1>Search Results for "{{ query }}"</h1>
-        <div class="table-responsive">
-            <table class="table table-bordered table-hover text-nowrap">
-                <thead>
-                    <tr>
-                        <th>Doctor Name</th>
-                        <th>Cosine Similarity</th>
-                        <!-- ... other headers ... -->
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Tempatkan data dinamis di sini. Pastikan data yang dikeluarkan loop Jinja2 memiliki tag <tr> dan <td> yang sesuai -->
-                    {{ tfidf_table | safe }}
-                </tbody>
-            </table>
-        </div>
-        <!-- ... other content ... -->
-        <a href="{{ url_for('index') }}" class="btn btn-primary mt-3">Back to Search</a>
+    <h1>Hasil Pencarian untuk '{{ query }}'</h1>
+    <div class="search-results">
+        {% if dokter_list %}
+            {% for dokter in dokter_list %}
+                <div class="result-item">
+                    <h2>{{ dokter.nama_title }}</h2>
+                    <p>Spesialisasi: {{ dokter.spesialis }}</p>
+                    <p>Skor Kesamaan: {{ dokter.similarity }}</p>
+                    <!-- Form untuk feedback -->
+                    <form class="feedback-form" action="/feedback" method="post">
+                        <input type="hidden" name="dokter_id" value="{{ dokter.id }}">
+                        <input type="hidden" name="query" value="{{ query }}">
+                        <label>
+                            <input type="radio" name="relevansi" value="ya" required> Relevan
+                        </label>
+                        <label>
+                            <input type="radio" name="relevansi" value="tidak" required> Tidak Relevan
+                        </label>
+                        <button type="submit">Kirim Feedback</button>
+                    </form>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Tidak ada hasil yang ditemukan.</p>
+        {% endif %}
     </div>
-    <!-- ... JavaScript includes ... -->
+    <a href="/">Kembali ke pencarian</a>
 </body>
 </html>
