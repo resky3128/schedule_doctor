@@ -1,9 +1,8 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import mysql.connector
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
-import numpy as np
 
 app = Flask(__name__)
 
@@ -35,47 +34,92 @@ def search():
     query = request.args.get('query', '').lower()
     doctor_data = get_doctor_data()
 
-    combined_data = [' '.join([d['pendidikan'].lower(), d['nama'].lower(), d['spesialis'].lower()]) for d in doctor_data]
+    combined_data = [' '.join([d['pendidikan'].lower(), d['nama'].lower(), d['nama_title'].lower(), d['spesialis'].lower()]) for d in doctor_data]
 
     vectorizer = TfidfVectorizer(analyzer='char_wb', ngram_range=(3, 5))
     tfidf_matrix = vectorizer.fit_transform(combined_data)
-    feature_names = vectorizer.get_feature_names_out()
-
     query_vector = vectorizer.transform([query])
     cosine_similarities = cosine_similarity(query_vector, tfidf_matrix).flatten()
 
-    # Dapatkan indeks fitur dengan similarity dan buat daftar term relevan
-    relevant_indices = query_vector.toarray().flatten().nonzero()[0]
-    relevant_features = [feature_names[i] for i in relevant_indices]
+    results = []
+    for idx, similarity in enumerate(cosine_similarities):
+        if similarity > 0:
+            results.append({
+                'id': doctor_data[idx]['id'],
+                'nama_title': doctor_data[idx]['nama_title'],
+                'nama': doctor_data[idx]['nama'],
+                'spesialis': doctor_data[idx]['spesialis'],
+                'similarity': similarity
+            })
 
-    # Siapkan data untuk DataFrame
-    data = []
-    for idx, doc_vector in enumerate(tfidf_matrix.toarray()):
-        if cosine_similarities[idx] > 0:
-            doc_terms = {feature_names[i]: doc_vector[i] for i in relevant_indices if doc_vector[i] > 0}
-            if doc_terms:  # Hanya jika ada term relevan
-                doc_data = {
-                    'Doctor Name': doctor_data[idx]['nama_title'],
-                    **doc_terms,
-                    'Cosine Similarity': cosine_similarities[idx]
-                }
-                data.append(doc_data)
+    return render_template('search.html', dokter_list=results, query=query)
 
-    # Jika tidak ada data yang cocok, kembalikan pesan atau DataFrame kosong
-    if not data:
-        return render_template('search.html', message="No matching results.", query=query)
+@app.route('/feedback', methods=['POST'])
+def feedback():
+    dokter_id = request.form['dokter_id']
+    query = request.form['query']
+    relevansi = request.form['relevansi']  # 'ya' jika relevan, 'tidak' jika tidak relevan
 
-    # Buat DataFrame dari data yang dikumpulkan
-    tfidf_df = pd.DataFrame(data)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        'INSERT INTO feedback (dokter_id, query, relevansi) VALUES (%s, %s, %s)',
+        (dokter_id, query, relevansi)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-    # Urutkan DataFrame berdasarkan skor similarity
-    tfidf_df_sorted = tfidf_df.sort_values(by='Cosine Similarity', ascending=False)
+    return redirect(url_for('search', query=query))
 
-    # Konversi DataFrame ke HTML table
-    tfidf_table_html = tfidf_df_sorted.to_html(classes='tfidf-table', float_format='%.3f', index=False)
+@app.route('/metrics', methods=['GET'])
+def calculate_metrics():
+    # Mengambil query dari parameter URL. Jika tidak ada, gunakan string kosong sebagai default.
+    query = request.args.get('query', default="")
 
-    # Kirim HTML table ke template
-    return render_template('search.html', tfidf_table=tfidf_table_html, query=query)
+    # Jika query kosong, kirim pesan error ke template.
+    if not query:
+        return render_template('metrics.html', error="Query tidak boleh kosong.")
+
+    # Buka koneksi database.
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Dapatkan semua feedback relevan untuk query yang diberikan.
+    cursor.execute('SELECT relevansi FROM feedback WHERE query = %s', (query,))
+    feedback_data = cursor.fetchall()
+
+    # Menghitung TP dan FP berdasarkan feedback.
+    # TP: Jumlah feedback positif (relevansi 'ya').
+    # FP: Jumlah feedback negatif (relevansi 'tidak').
+    TP = sum(f['relevansi'] == 'ya' for f in feedback_data)
+    FP = sum(f['relevansi'] == 'tidak' for f in feedback_data)
+
+    # Untuk menghitung FN, Anda perlu menentukan dokter mana yang seharusnya dikembalikan oleh query.
+    # Ini bisa dilakukan dengan membandingkan hasil yang seharusnya (dari 'ground truth') dengan hasil yang dikembalikan oleh sistem pencarian.
+    # Karena kita tidak memiliki 'ground truth' yang sesungguhnya, kita akan melewati langkah ini.
+    # Anda perlu mengimplementasikan logika ini berdasarkan sistem Anda.
+    FN = 0  # Ini harus diganti dengan logika yang tepat.
+
+    # Hitung metrik.
+    precision = TP / (TP + FP) if TP + FP > 0 else 0
+    recall = TP / (TP + FN) if TP + FN > 0 else 0
+    F1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0
+
+    # Tutup kursor dan koneksi database.
+    cursor.close()
+    conn.close()
+
+    # Kirim hasil metrik ke template metrics.html bersama dengan query.
+    metrics = {
+        'precision': precision,
+        'recall': recall,
+        'F1': F1,
+        'query': query  # Pastikan variabel ini dikirim ke template.
+    }
+
+    # Render dan kembalikan template metrics.html dengan data metrik dan query.
+    return render_template('metrics.html', metrics=metrics, query=query)
 
 if __name__ == '__main__':
     app.run(debug=True)
