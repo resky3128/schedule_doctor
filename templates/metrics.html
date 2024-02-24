@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Metrik Pencarian</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .metrics-table {
+            margin-top: 20px;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .metrics-table th, .metrics-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .metrics-table th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Metrik untuk Query "{{ query }}"</h1>
+    <table class="metrics-table">
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Precision</td>
+                <td>{{ metrics.precision|round(2) }}</td>
+            </tr>
+            <tr>
+                <td>Recall</td>
+                <td>{{ metrics.recall|round(2) }}</td>
+            </tr>
+            <tr>
+                <td>F1-Score</td>
+                <td>{{ metrics.F1|round(2) }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <a href="/">Kembali ke Pencarian</a>
+</body>
+</html>
