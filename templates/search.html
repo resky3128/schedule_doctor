@@ -3,52 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <title>Hasil Pencarian</title>
-    <style>
-        /* Tambahkan style yang Anda inginkan di sini */
-        body {
-            font-family: Arial, sans-serif;
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script>
+        function confirmFeedback(submission) {
+            const isRelevant = submission.querySelector('input[name="relevansi"]:checked').value;
+            return confirm('Apakah Anda yakin ingin menandai sebagai "' + (isRelevant === 'ya' ? 'Relevan' : 'Tidak Relevan') + '"?');
         }
-        .search-results {
-            margin-top: 20px;
-        }
-        .result-item {
-            margin-bottom: 10px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .feedback-form {
-            margin-top: 10px;
-        }
-    </style>
+    </script>
 </head>
 <body>
-    <h1>Hasil Pencarian untuk '{{ query }}'</h1>
-    <div class="search-results">
-        {% if dokter_list %}
-            {% for dokter in dokter_list %}
-                <div class="result-item">
-                    <h2>{{ dokter.nama_title }}</h2>
-                    <p>Spesialisasi: {{ dokter.spesialis }}</p>
-                    <p>Skor Kesamaan: {{ dokter.similarity }}</p>
-                    <!-- Form untuk feedback -->
-                    <form class="feedback-form" action="/feedback" method="post">
-                        <input type="hidden" name="dokter_id" value="{{ dokter.id }}">
-                        <input type="hidden" name="query" value="{{ query }}">
-                        <label>
-                            <input type="radio" name="relevansi" value="ya" required> Relevan
-                        </label>
-                        <label>
-                            <input type="radio" name="relevansi" value="tidak" required> Tidak Relevan
-                        </label>
-                        <button type="submit">Kirim Feedback</button>
-                    </form>
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center">Hasil Pencarian untuk "{{ query }}"</h1>
+            {% if dokter_list %}
+                <table class="table table-bordered">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Nama</th>
+                            <th>Spesialisasi</th>
+                            <th>Skor Kesamaan</th>
+                            <th>Feedback</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dokter in dokter_list %}
+                            <tr>
+                                <td>{{ dokter.nama_title }}</td>
+                                <td>{{ dokter.spesialis }}</td>
+                                <td>{{ dokter.similarity }}</td>
+                                <td>
+                                    <form onsubmit="return confirmFeedback(this)" action="/feedback" method="post">
+                                        <input type="hidden" name="dokter_id" value="{{ dokter.id }}">
+                                        <input type="hidden" name="query" value="{{ query }}">
+                                        <div class="form-group">
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="relevansi" value="ya" required>
+                                                <label class="form-check-label">Relevan</label>
+                                            </div>
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input" type="radio" name="relevansi" value="tidak" required>
+                                                <label class="form-check-label">Tidak Relevan</label>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary btn-sm feedback-button">Kirim Feedback</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="alert alert-warning" role="alert">
+                    Tidak ada hasil yang ditemukan.
                 </div>
-            {% endfor %}
-        {% else %}
-            <p>Tidak ada hasil yang ditemukan.</p>
-        {% endif %}
+            {% endif %}
+            
+            <a href="/" class="btn btn-secondary mt-3">Kembali ke pencarian</a>
     </div>
-    <a href="/">Kembali ke pencarian</a>
+
+    <!-- Modal Konfirmasi untuk Feedback -->
+    <div class="modal" id="feedbackModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Konfirmasi Feedback</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin mengirim feedback ini?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" id="confirmFeedbackBtn">Kirim Feedback</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Bootstrap JS and its dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
