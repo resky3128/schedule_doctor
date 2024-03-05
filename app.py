@@ -43,7 +43,7 @@ def search():
 
     results = []
     for idx, similarity in enumerate(cosine_similarities):
-        if similarity > 0:
+        if similarity > 0.1:
             results.append({
                 'id': doctor_data[idx]['id'],
                 'nama_title': doctor_data[idx]['nama_title'],
@@ -51,8 +51,11 @@ def search():
                 'spesialis': doctor_data[idx]['spesialis'],
                 'similarity': similarity
             })
+    
+    # Urutkan hasil berdasarkan nilai similarity, dari yang tertinggi ke terendah
+    sorted_results = sorted(results, key=lambda x: x['similarity'], reverse=True)
 
-    return render_template('search.html', dokter_list=results, query=query)
+    return render_template('search.html', dokter_list=sorted_results, query=query)
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
@@ -69,8 +72,8 @@ def feedback():
     conn.commit()
     cursor.close()
     conn.close()
-
-    return redirect(url_for('search', query=query))
+    
+    return redirect(url_for('search', query=query, feedback_sent='true'))
 
 @app.route('/metrics', methods=['GET'])
 def calculate_metrics():
@@ -90,16 +93,9 @@ def calculate_metrics():
     feedback_data = cursor.fetchall()
 
     # Menghitung TP dan FP berdasarkan feedback.
-    # TP: Jumlah feedback positif (relevansi 'ya').
-    # FP: Jumlah feedback negatif (relevansi 'tidak').
     TP = sum(f['relevansi'] == 'ya' for f in feedback_data)
     FP = sum(f['relevansi'] == 'tidak' for f in feedback_data)
-
-    # Untuk menghitung FN, Anda perlu menentukan dokter mana yang seharusnya dikembalikan oleh query.
-    # Ini bisa dilakukan dengan membandingkan hasil yang seharusnya (dari 'ground truth') dengan hasil yang dikembalikan oleh sistem pencarian.
-    # Karena kita tidak memiliki 'ground truth' yang sesungguhnya, kita akan melewati langkah ini.
-    # Anda perlu mengimplementasikan logika ini berdasarkan sistem Anda.
-    FN = 0  # Ini harus diganti dengan logika yang tepat.
+    FN = 0
 
     # Hitung metrik.
     precision = TP / (TP + FP) if TP + FP > 0 else 0
