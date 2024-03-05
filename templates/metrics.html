@@ -23,6 +23,24 @@
     </style>
 </head>
 <body>
+    {% if overall_metrics %}
+    <h2>Metrik Keseluruhan</h2>
+    <table class="metrics-table">
+        <tr>
+            <th>Precision Keseluruhan</th>
+            <td>{{ overall_metrics.precision_overall | round(2) }}</td>
+        </tr>
+        <tr>
+            <th>Recall Keseluruhan</th>
+            <td>{{ overall_metrics.recall_overall | round(2) }}</td>
+        </tr>
+        <tr>
+            <th>F1-Score Keseluruhan</th>
+            <td>{{ overall_metrics.F1_overall | round(2) }}</td>
+        </tr>
+    </table>
+{% endif %}
+
     <h1>Metrik untuk Query "{{ query }}"</h1>
     <table class="metrics-table">
         <thead>
